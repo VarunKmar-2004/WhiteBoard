@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import SimplePeer from "simple-peer";
-import { socket } from "./socket";
+import { socket } from "./socket"; // Make sure your socket exports a `socket` as io() client
 
 export default function Whiteboard({ roomName, drawerName }) {
   const canvasRef = useRef(null);
@@ -11,6 +11,7 @@ export default function Whiteboard({ roomName, drawerName }) {
   const [users, setUsers] = useState([]);
   const [socketId, setSocketId] = useState(null);
 
+  // Voice
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [peers, setPeers] = useState({}); // { socketId: SimplePeer }
@@ -36,18 +37,15 @@ export default function Whiteboard({ roomName, drawerName }) {
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-
     function onUserJoined({ socketId, drawerName }) {
       setUsers((prev) => {
         if (prev.find((u) => u.socketId === socketId)) return prev;
         return [...prev, { socketId, drawerName }];
       });
     }
-
     function onActiveUsers(active) {
       setUsers(active);
     }
-
     function onUserLeft({ socketId }) {
       setOtherCursors((prev) => {
         const copy = { ...prev };
@@ -57,7 +55,6 @@ export default function Whiteboard({ roomName, drawerName }) {
       setUsers((prev) => prev.filter((u) => u.socketId !== socketId));
       cleanupVoicePeer(socketId);
     }
-
     function onCursorMove({ position, drawerName, socketId }) {
       setOtherCursors((prev) => ({
         ...prev,
@@ -81,26 +78,45 @@ export default function Whiteboard({ roomName, drawerName }) {
       socket.off("cursor_move", onCursorMove);
     };
   }, []);
+
+  // --- WebRTC SimplePeer logic ---
+
+  // Allow peer creation for signaling even if not voiceEnabled (listener can always receive)
   function makePeerConnection(otherId, initiator) {
-    if (!localStream) return;
-    const peer = new SimplePeer({
+    const opts = {
       initiator,
       trickle: false,
-      stream: localStream
-    });
-      peer.on("signal", data => {
+    };
+    if (localStream) {
+      opts.stream = localStream;
+    }
+    const peer = new SimplePeer(opts);
+
+    peer.on("signal", (data) => {
       // SimplePeer emits signal for offer/answer/ice
       if (initiator) {
-        socket.emit("webrtc_offer", { targetSocketId: otherId, offer: data, drawerName });
+        socket.emit("webrtc_offer", {
+          targetSocketId: otherId,
+          offer: data,
+          drawerName
+        });
       } else {
         if (data.type === "answer") {
-          socket.emit("webrtc_answer", { targetSocketId: otherId, answer: data, drawerName });
+          socket.emit("webrtc_answer", {
+            targetSocketId: otherId,
+            answer: data,
+            drawerName
+          });
         } else if (!data.type || data.candidate) {
-          socket.emit("webrtc_ice_candidate", { targetSocketId: otherId, candidate: data });
+          socket.emit("webrtc_ice_candidate", {
+            targetSocketId: otherId,
+            candidate: data
+          });
         }
       }
     });
-    peer.on("stream", remoteStream => {
+
+    peer.on("stream", (remoteStream) => {
       // Create or reuse audio element for this peer
       if (audioRefs.current[otherId]) return;
       const audio = document.createElement("audio");
@@ -109,24 +125,26 @@ export default function Whiteboard({ roomName, drawerName }) {
       audioRefs.current[otherId] = audio;
       document.body.appendChild(audio);
     });
+
     peer.on("close", () => {
       cleanupVoicePeer(otherId);
     });
 
-    // Remove audio on error as well
     peer.on("error", () => {
       cleanupVoicePeer(otherId);
     });
 
-    setPeers(prev => ({ ...prev, [otherId]: peer }));
+    setPeers((prev) => ({ ...prev, [otherId]: peer }));
+
     return peer;
   }
+
   function cleanupVoicePeer(sid) {
     if (audioRefs.current[sid]) {
       audioRefs.current[sid].remove();
       delete audioRefs.current[sid];
     }
-    setPeers(prev => {
+    setPeers((prev) => {
       const copy = { ...prev };
       if (copy[sid]) {
         copy[sid].destroy?.();
@@ -135,9 +153,11 @@ export default function Whiteboard({ roomName, drawerName }) {
       return copy;
     });
   }
+
   useEffect(() => {
+    // Only block self-connection
     function onWebrtcOffer({ fromSocketId, offer }) {
-      if (fromSocketId === socketId || !voiceEnabled || !localStream) return;
+      if (fromSocketId === socketId) return;
       let peer = peers[fromSocketId];
       if (!peer) {
         peer = makePeerConnection(fromSocketId, false);
@@ -145,12 +165,12 @@ export default function Whiteboard({ roomName, drawerName }) {
       peer.signal(offer);
     }
     function onWebrtcAnswer({ fromSocketId, answer }) {
-      if (fromSocketId === socketId || !voiceEnabled) return;
+      if (fromSocketId === socketId) return;
       const peer = peers[fromSocketId];
       if (peer) peer.signal(answer);
     }
     function onWebrtcIce({ fromSocketId, candidate }) {
-      if (fromSocketId === socketId || !voiceEnabled) return;
+      if (fromSocketId === socketId) return;
       const peer = peers[fromSocketId];
       if (peer) peer.signal(candidate);
     }
@@ -164,19 +184,19 @@ export default function Whiteboard({ roomName, drawerName }) {
       socket.off("webrtc_ice_candidate", onWebrtcIce);
     };
     // eslint-disable-next-line
-  }, [peers, voiceEnabled, localStream, socketId]);
+  }, [peers, socketId]);
 
-  // On users list change, connect if voice enabled
+  // On users list change, connect if voiceEnabled
   useEffect(() => {
     if (!voiceEnabled || !localStream) return;
     // Remove peers not in the room anymore
-    Object.keys(peers).forEach(p => {
-      if (!users.find(u => u.socketId === p)) {
+    Object.keys(peers).forEach((p) => {
+      if (!users.find((u) => u.socketId === p)) {
         cleanupVoicePeer(p);
       }
     });
     // Add peers for new users
-    users.forEach(u => {
+    users.forEach((u) => {
       if (u.socketId === socketId) return;
       if (!peers[u.socketId]) {
         makePeerConnection(u.socketId, true); // initiator
@@ -192,18 +212,19 @@ export default function Whiteboard({ roomName, drawerName }) {
       setLocalStream(stream);
       setVoiceEnabled(true);
     } catch (err) {
-      alert("Microphone access denied or unavailable.",err);
+      alert("Microphone access denied or unavailable.", err);
     }
   }
   function stopVoiceChat() {
     if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
+      localStream.getTracks().forEach((t) => t.stop());
       setLocalStream(null);
     }
     setVoiceEnabled(false);
     // Destroy peers and remove audio
     Object.keys(peers).forEach(cleanupVoicePeer);
   }
+
   const getPoint = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -245,7 +266,7 @@ export default function Whiteboard({ roomName, drawerName }) {
     socket.emit("clear_board", { roomName });
   };
 
-  // Normal pen (black line)
+  // Drawing and erasing
   const drawLine = (ctx, from, to) => {
     ctx.save();
     ctx.strokeStyle = "black";
@@ -258,7 +279,6 @@ export default function Whiteboard({ roomName, drawerName }) {
     ctx.restore();
   };
 
-  // Eraser tool (use destination-out composite)
   const eraseLine = (ctx, from, to) => {
     ctx.save();
     ctx.globalCompositeOperation = "destination-out";
@@ -276,18 +296,23 @@ export default function Whiteboard({ roomName, drawerName }) {
       {/* Drawing Area */}
       <div className="flex flex-col items-center">
         <div className="mb-4 flex flex-row items-center gap-4">
-
           {/* Drawing tool buttons */}
           <button
-            className={`px-4 py-2 rounded-sm text-white transition ${tool === "pen" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-500 hover:bg-gray-600"
-              }`}
+            className={`px-4 py-2 rounded-sm text-white transition ${
+              tool === "pen"
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : "bg-gray-500 hover:bg-gray-600"
+            }`}
             onClick={() => setTool("pen")}
           >
             Pen
           </button>
           <button
-            className={`px-4 py-2 rounded-sm text-white transition ${tool === "eraser" ? "bg-red-500 hover:bg-red-600" : "bg-gray-500 hover:bg-gray-600"
-              }`}
+            className={`px-4 py-2 rounded-sm text-white transition ${
+              tool === "eraser"
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-gray-500 hover:bg-gray-600"
+            }`}
             onClick={() => setTool("eraser")}
           >
             Manual Erase
@@ -298,20 +323,22 @@ export default function Whiteboard({ roomName, drawerName }) {
           >
             Clear All
           </button>
-
           {/* --- Voice Chat Buttons --- */}
           {!voiceEnabled ? (
             <button
               className="px-4 py-2 rounded-sm text-white bg-blue-700 hover:bg-blue-800 transition"
               onClick={startVoiceChat}
-            >Start Voice Chat</button>
+            >
+              Start Voice Chat
+            </button>
           ) : (
             <button
               className="px-4 py-2 rounded-sm text-white bg-gray-700 hover:bg-gray-800 transition"
               onClick={stopVoiceChat}
-            >Stop Voice Chat</button>
+            >
+              Stop Voice Chat
+            </button>
           )}
-
           {/* Tool mode indicator */}
           <span className="text-gray-600 font-medium select-none">
             {tool === "pen"
@@ -343,21 +370,22 @@ export default function Whiteboard({ roomName, drawerName }) {
               height: 500,
             }}
           >
-            {Object.entries(otherCursors).map(([id, { position, drawerName }]) =>
-              position ? (
-                <div
-                  key={id}
-                  className="absolute z-10 pointer-events-none bg-gray-300 text-black text-xs rounded px-2 py-0.5 flex items-center select-none"
-                  style={{
-                    left: position.x,
-                    top: position.y,
-                    transform: "translate(-50%, -110%)",
-                  }}
-                >
-                  {drawerName}
-                  <span className="ml-1 w-2.5 h-2.5 bg-blue-600 rounded-full inline-block" />
-                </div>
-              ) : null
+            {Object.entries(otherCursors).map(
+              ([id, { position, drawerName }]) =>
+                position ? (
+                  <div
+                    key={id}
+                    className="absolute z-10 pointer-events-none bg-gray-300 text-black text-xs rounded px-2 py-0.5 flex items-center select-none"
+                    style={{
+                      left: position.x,
+                      top: position.y,
+                      transform: "translate(-50%, -110%)",
+                    }}
+                  >
+                    {drawerName}
+                    <span className="ml-1 w-2.5 h-2.5 bg-blue-600 rounded-full inline-block" />
+                  </div>
+                ) : null
             )}
           </div>
         </div>
