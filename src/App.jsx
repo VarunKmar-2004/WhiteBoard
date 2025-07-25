@@ -1,6 +1,6 @@
 import React,{useState} from 'react'
 import RoomForm from "./RoomForm";
-import Whiteboard from "./Whiteboard";
+import Whiteboard from "./WhiteBoard.jsx";
 
 function App() {
   const [roomData, setRoomData] = useState(null);
