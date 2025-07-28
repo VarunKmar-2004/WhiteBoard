@@ -23,43 +23,11 @@ Built with **React**, **Express**, **Socket.IO**, and **SimplePeer (WebRTC)**.
 - **Frontend:** React, SimplePeer, socket.io-client
 - **Backend:** Express + Socket.IO
 - **Voice:** WebRTC, peer-to-peer (via SimplePeer), signaled with Socket.IO
-
----
-
-### Component Diagram (Mermaid)
-
-graph TD
-Canvas[Canvas
-(draw/erase)]
-Sidebar[Sidebar
-(users, status)]
-Voice[SimplePeer
-Voice (WebRTC)]
-Socket[Socket.IO Client]
-Canvas --> Socket
-Sidebar --> Socket
-Voice --> Socket
-
-text
-
----
-
-### Signal & Media Flow (Mermaid)
-
-flowchart LR
-Client1 -- draw/voice/cursor --> Server
-Client2 -- draw/voice/cursor --> Server
-Client3 -- draw/voice/cursor --> Server
-Server -- draw/state/signal --> Clients
-Client1 --- P2P WebRTC audio --- Client2
-Client1 --- P2P WebRTC audio --- Client3
-
-text
-
 ---
 
 ### WebRTC Signaling Sequence (Mermaid)
 
+```mermaid
 sequenceDiagram
 participant Alice as User A
 participant Server
@@ -74,7 +42,7 @@ Bob->>Server: webrtc_ice_candidate
 Server->>Bob: webrtc_ice_candidate
 Server->>Alice: webrtc_ice_candidate
 Note over Alice,Bob: After this, audio flows P2P (not via server)
-
+```
 text
 
 ---
