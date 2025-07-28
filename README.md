@@ -87,45 +87,6 @@ text
 
 ---
 
-## ⚡ Getting Started
-
-### 1. Clone & Install
-
-git clone https://github.com/your-username/whiteboard-voice.git
-cd whiteboard-voice
-npm install # installs backend deps
-
-cd client
-npm install # installs frontend deps
-
-text
-
-### 2. Run Servers
-
-In project root:
-npm start # Starts Express/Socket.IO server on :5000
-
-text
-In `/client`:
-npm start # Runs React app at :3000
-
-text
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## 🗂️ File Structure
-
-/client
-└── Whiteboard.jsx
-└── socket.js
-/server
-└── index.js
-
-text
-
----
-
 ## ⚙️ How It Works
 
 - **Draw/Erase:** Drawing actions are broadcast to all others. "Clear All" wipes history and screen for all.
