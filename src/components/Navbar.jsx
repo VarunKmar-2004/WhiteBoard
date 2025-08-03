@@ -22,9 +22,9 @@ const Navbar = () => {
         <p onClick={()=>handleNavigate('/about')} data-aos="fade-down" data-aos-duration='1600' className=' font-hai sm:text-[17px] hover:cursor-pointer hover:text-blue-500 transition-colors duration-150'>About</p>
         <p onClick={()=>handleNavigate('/features')} data-aos="fade-down" data-aos-duration='1800' className=' font-hai sm:text-[17px] hover:cursor-pointer hover:text-blue-500 transition-colors duration-150'>Features</p>
         {isloggedIn && userData?.fullName?(
-          <button  onClick={()=>handleNavigate('/profile')} data-aos="fade-down" data-aos-duration='1800' className='px-1 py-1 w-[40px] h-[40px] text-[18px] bg-blue-500 rounded-full hover:cursor-pointer hover:bg-blue-600 transition-colors duration-150 text-white font-hai'>{userData.fullName.charAt(0).toUpperCase()}</button>)
+          <button  onClick={()=>handleNavigate('/profile')}  className='px-1 py-1 w-[40px] h-[40px] text-[18px] bg-blue-500 rounded-full hover:cursor-pointer hover:bg-blue-600 transition-colors duration-150 text-white font-hai'>{userData.fullName.charAt(0).toUpperCase()}</button>)
           :(
-          <button  onClick={()=>handleNavigate('/login')} data-aos="fade-down" data-aos-duration='1800' className='px-4 py-1 text-[17px] bg-blue-500 rounded-[5px] hover:cursor-pointer hover:bg-blue-600 transition-colors duration-150 text-white font-hai'>Login</button>
+          <button  onClick={()=>handleNavigate('/login')}  className='px-4 py-1 text-[17px] bg-blue-500 rounded-[5px] hover:cursor-pointer hover:bg-blue-600 transition-colors duration-150 text-white font-hai'>Login</button>
         )}
       </div>
     </div>
