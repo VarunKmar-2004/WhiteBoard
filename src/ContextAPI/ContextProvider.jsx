@@ -29,7 +29,7 @@ const ContextProvider = ({children}) => {
     }
   }
   useEffect(() => {
-    localStorage.setItem('isloggedIn', isloggedIn);
+    localStorage.setItem('isLoggedIn', isloggedIn);
     localStorage.setItem('userData', JSON.stringify(userData || {}));
   }, [isloggedIn, userData]);
 
@@ -37,7 +37,7 @@ const ContextProvider = ({children}) => {
     isAuthenticated();
   },[])
   return (
-    <Context.Provider value={{isloggedIn,userData}}>
+    <Context.Provider value={{isloggedIn,userData,setUserData,setIsLoggedIn}}>
         {children}
     </Context.Provider>
   )

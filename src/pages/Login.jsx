@@ -1,12 +1,14 @@
-import React,{useState,useEffect} from 'react'
+import React,{useState,useEffect, useContext} from 'react'
 import {useNavigate} from 'react-router-dom'
 import logo from '../assets/Logo.png'
 import AOS from 'aos';
 import "aos/dist/aos.css";
 import {EyeOff, LockIcon, MailIcon, User2,Eye} from 'lucide-react'
 import axios from 'axios'
+import { Context } from '../ContextAPI/Context';
 const Login = () => {
   const navigate=useNavigate()
+  const {setUserData,setIsLoggedIn}=useContext(Context)
   const [login,setIsLogin]=useState('signup')
   const [passview,setPassView]=useState(false)
   const [formData,setFormData]=useState({
@@ -43,6 +45,8 @@ const handleSubmit=async(e)=>{
     }
     const {data}=response
     if(data.success){
+      setIsLoggedIn(true)
+      setUserData(data.userData)
       navigate('/')
       console.log(data.userData)
     }
