@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import SimplePeer from "simple-peer";
-import { socket } from "./socket"; // Make sure your socket exports a `socket` as io() client
+import { socket } from "../socket"; // Make sure your socket exports a `socket` as io() client
 
 export default function Whiteboard({ roomName, drawerName }) {
   const canvasRef = useRef(null);
@@ -10,18 +10,15 @@ export default function Whiteboard({ roomName, drawerName }) {
   const [otherCursors, setOtherCursors] = useState({});
   const [users, setUsers] = useState([]);
   const [socketId, setSocketId] = useState(null);
-
   // Voice
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [peers, setPeers] = useState({}); // { socketId: SimplePeer }
   const audioRefs = useRef({});
-
   useEffect(() => {
     setSocketId(socket.id);
     socket.emit("join_room", { roomName, drawerName });
   }, [roomName, drawerName]);
-
   useEffect(() => {
     function onDraw({ from, to, drawerName, socketId, type }) {
       if (!canvasRef.current) return;

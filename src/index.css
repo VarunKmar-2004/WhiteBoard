@@ -1,1 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Bree+Serif&family=Caprasimo&family=Edu+VIC+WA+NT+Hand:wght@400..700&display=swap');
 @import "tailwindcss";
+@theme{
+    --font-varun:'Edu VIC WA NT Hand','cursive';
+    --font-kittu:"Caprasimo", 'serif';
+    --font-hai: "Bree Serif", 'serif';
+}
+.floating-label {
+  /* fallback styles if not using Tailwind JIT/Arbitrary Values */
+  font-size: 1rem;
+  top: 0.75rem;
+  left: 0.5rem;
+}
+.peer:focus ~ .floating-label,
+.peer:not(:placeholder-shown) ~ .floating-label {
+  transform: translateY(-1.5rem) scale(0.85);
+  font-size: 0.85rem;
+  color: #3b82f6; /* Tailwind blue-500 */
+  background: white;
+  padding: 0 0.2rem;
+}
