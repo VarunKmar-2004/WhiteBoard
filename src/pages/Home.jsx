@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { Context } from '../ContextAPI/Context'
 const Home = () => {
   const navigate=useNavigate()
-  const {userData,isloggedIn}=useContext(Context)
+  const {isloggedIn}=useContext(Context)
   const handleClick=()=>{
     if(isloggedIn){
       navigate('/room-form')
